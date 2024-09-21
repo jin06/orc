@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/scritchley/orc"
+	"github.com/jin06/orc"
 )
 
 var (

@@ -60,9 +60,10 @@ func (r *Reader) getCodec() (CompressionCodec, error) {
 		return CompressionZlib{}, nil
 	case proto.CompressionKind_SNAPPY:
 		return CompressionSnappy{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported compression kind %s", compressionKind)
+	case proto.CompressionKind_LZ4:
+		return CompressionLZ4{}, nil
 	}
+	return nil, fmt.Errorf("unsupported compression kind %s", compressionKind)
 }
 
 func (r *Reader) Schema() *TypeDescription {

@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/golang/snappy"
+	"github.com/pierrec/lz4/v4"
 )
 
 // CompressionCodec is an interface that provides methods for creating
@@ -311,4 +312,52 @@ func compressionHeader(chunkLength int, isOriginal bool) ([]byte, error) {
 	}
 
 	return i[:3], nil
+}
+
+type CompressionLZ4 struct {
+}
+
+func (CompressionLZ4) Encoder(w io.Writer) io.WriteCloser {
+	panic("unimplemented")
+}
+
+func (CompressionLZ4) Decoder(r io.Reader) io.Reader {
+	return &CompressionLZ4Decoder{source: r}
+}
+
+type CompressionLZ4Decoder struct {
+	source      io.Reader
+	decoded     io.Reader
+	isOriginal  bool
+	chunkLength int
+	remaining   int64
+}
+
+func (c *CompressionLZ4Decoder) readHeader() (int, error) {
+	header := make([]byte, 4, 4)
+	_, err := c.source.Read(header[:3])
+	if err != nil {
+		return 0, err
+	}
+	headerVal := binary.LittleEndian.Uint32(header)
+	c.isOriginal = headerVal%2 == 1
+	c.chunkLength = int(headerVal / 2)
+	if !c.isOriginal {
+		c.decoded = lz4.NewReader(io.LimitReader(c.source, int64(c.chunkLength)))
+	} else {
+		c.decoded = io.LimitReader(c.source, int64(c.chunkLength))
+	}
+	return 0, nil
+}
+
+func (c *CompressionLZ4Decoder) Read(p []byte) (int, error) {
+	if c.decoded == nil {
+		return c.readHeader()
+	}
+	n, err := c.decoded.Read(p)
+	if err == io.EOF {
+		c.decoded = nil
+		return n, nil
+	}
+	return n, err
 }

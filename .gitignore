@@ -24,3 +24,6 @@ _testmain.go
 *.prof
 
 .DS_Store
+tools/orc2csv/test*.orc
+.vscode
+*/**/*__debug_*
